@@ -48,7 +48,7 @@ def main():
     worker_count = 0
     
     infile = sys.argv[1]
-    outfile = infile + '.graphsize'
+    outfile = sys.argv[2]
 
     print 'creating ht'
     ht = khmer.new_hashbits(K, HASHTABLE_SIZE, N_HT)
