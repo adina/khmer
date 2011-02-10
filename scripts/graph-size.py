@@ -4,12 +4,12 @@ import screed
 import threading, Queue
 
 K = 32
-HASHTABLE_SIZE=int(4e9)
-THRESHOLD=100
+HASHTABLE_SIZE=int(148e9)
+THRESHOLD=500
 N_HT=4
 
 GROUPSIZE=100
-WORKER_THREADS=4
+WORKER_THREADS=8
 
 def process(inq, outq, ht):
     global worker_count
