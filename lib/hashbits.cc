@@ -699,11 +699,13 @@ void Hashbits::consume_partitioned_fasta(const std::string &filename,
 
 void Hashbits::filter_if_present(const std::string infilename,
 				 const std::string outputfile,
+				 
 				 CallbackFn callback,
 				 void * callback_data)
 {
   IParser* parser = IParser::get_parser(infilename);
   ofstream outfile(outputfile.c_str());
+  ofstream outfile2("16S_sequences_kept.fa");
 
   unsigned int total_reads = 0;
   unsigned int reads_kept = 0;
@@ -737,6 +739,11 @@ void Hashbits::filter_if_present(const std::string infilename,
 	reads_kept++;
       }
 	       
+      if (!keep) {
+	outfile2 << ">" << read.name;
+	outfile2 << "\n" << seq << "\n";
+      }
+
       total_reads++;
 
       // run callback, if specified
