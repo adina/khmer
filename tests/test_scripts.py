@@ -95,6 +95,20 @@ def _make_counting(infilename, SIZE=1e7, N=2, K=20):
 
     return outfile
 
+def _make_graph(infilename, SIZE=1e7, N=2, K=20):
+    script = scriptpath('load-graph.py')
+    args = ['-x', str(SIZE), '-N', str(N), '-k', str(K)]
+    
+    outfile = utils.get_temp_filename('out.kh')
+
+    args.extend([outfile, infilename])
+
+    (status, out, err) = runscript(script, args)
+    assert status == 0
+    assert os.path.exists(outfile)
+
+    return outfile
+
 def test_filter_abund_1():
     infile = utils.get_temp_filename('test.fa')
     in_dir = os.path.dirname(infile)
@@ -207,15 +221,15 @@ def test_normalize_by_median_2():
     assert seqs[0].startswith('GGTTGACGGGGCTCAGGGGG'), seqs
     assert seqs[1] == 'GGTTGACGGGGCTCAGGG', seqs
 
-def test_normalize_by_min():
-    CUTOFF='5'
+def test_normalize_by_median_empty():
+    CUTOFF='1'
 
     infile = utils.get_temp_filename('test.fa')
     in_dir = os.path.dirname(infile)
 
-    shutil.copyfile(utils.get_test_data('test-abund-read-2.fa'), infile)
+    shutil.copyfile(utils.get_test_data('test-empty.fa'), infile)
 
-    script = scriptpath('normalize-by-min.py')
+    script = scriptpath('normalize-by-median.py')
     args = ['-C', CUTOFF, '-k', '17', infile]
     (status, out, err) = runscript(script, args, in_dir)
     assert status == 0
@@ -223,9 +237,26 @@ def test_normalize_by_min():
     outfile = infile + '.keep'
     assert os.path.exists(outfile), outfile
 
-    seqs = [ r.sequence for r in screed.open(outfile) ]
-    assert len(seqs) == 5, seqs
-    assert seqs[0].startswith('GGTTGACGGGGCTCAGGGGG'), seqs
+def test_count_median():
+    infile = utils.get_temp_filename('test.fa')
+    outfile = infile + '.counts'
+    in_dir = os.path.dirname(infile)
+
+    shutil.copyfile(utils.get_test_data('test-abund-read-2.fa'), infile)
+    counting_ht = _make_counting(infile, K=8)
+
+    script = scriptpath('count-median.py')
+    args = [counting_ht, infile, outfile]
+    (status, out, err) = runscript(script, args)
+    assert status == 0
+
+    assert os.path.exists(outfile), outfile
+
+    data = [ x.strip() for x in open(outfile) ]
+    data = set(data)
+    assert len(data) == 2, data
+    assert 'seq 1001 1001.0 0.0 18' in data
+    assert '895:1:37:17593:9954/1 1 103.803741455 303.702941895 114' in data
 
 ####
 
@@ -414,7 +445,7 @@ def test_partition_graph_nojoin_stoptags():
 
 def test_partition_graph_big_traverse():
     graphbase = _make_graph(utils.get_test_data('biglump-random-20-a.fa'),
-                            do_partition=True, stop_big_traverse=True)
+                            do_partition=True, stop_big_traverse=False)
     in_dir = os.path.dirname(graphbase)
 
     final_pmap_file = graphbase + '.pmap.merged'
@@ -429,7 +460,7 @@ def test_partition_graph_big_traverse():
 def test_partition_graph_no_big_traverse():
     # do NOT exhaustively traverse
     graphbase = _make_graph(utils.get_test_data('biglump-random-20-a.fa'),
-                            do_partition=True, stop_big_traverse=False)
+                            do_partition=True, stop_big_traverse=True)
     in_dir = os.path.dirname(graphbase)
 
     final_pmap_file = graphbase + '.pmap.merged'
@@ -514,3 +545,23 @@ def test_extract_partitions():
     assert len(parts) == 99, len(parts)
     parts = set(parts)
     assert len(parts) == 1, len(parts)
+
+def test_abundance_dist():
+    infile = utils.get_temp_filename('test.fa')
+    outfile = utils.get_temp_filename('test.dist')
+    in_dir = os.path.dirname(infile)
+
+    shutil.copyfile(utils.get_test_data('test-abund-read-2.fa'), infile)
+
+    htfile = _make_counting(infile, K=17)
+
+    script = scriptpath('abundance-dist.py')
+    args = ['-z', htfile, infile, outfile]
+    (status, out, err) = runscript(script, args, in_dir)
+    assert status == 0
+
+    fp = iter(open(outfile))
+    line = fp.next().strip()
+    assert line == '1 96 96 0.98', line
+    line = fp.next().strip()
+    assert line == '1001 2 98 1.0', line

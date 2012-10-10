@@ -30,7 +30,8 @@ DEFAULT_COUNTING_HT_N=4                     # number of counting hash tables
 ## don't change these!
 EXCURSION_DISTANCE=40
 EXCURSION_KMER_THRESHOLD=200
-EXCURSION_KMER_COUNT_THRESHOLD=5
+EXCURSION_KMER_COUNT_THRESHOLD=2
+#EXCURSION_KMER_COUNT_THRESHOLD=5 # -- works ok for non-diginormed data
 
 ###
 
@@ -99,6 +100,7 @@ def main():
 
         print 'saving stoptags binary'
         ht.save_stop_tags(graphbase + '.stoptags')
+        os.rename(subset_file, subset_file + '.processed')
         print '(%d of %d)\n' % (n, len(pmap_files))
 
     print 'done!'

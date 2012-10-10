@@ -11,6 +11,7 @@ Use '-h' for parameter help.
 import sys, screed, os
 import khmer
 from khmer.counting_args import build_construct_args, DEFAULT_MIN_HASHSIZE
+import argparse
 
 DEFAULT_DESIRED_COVERAGE=5
 
@@ -21,6 +22,8 @@ def main():
     parser.add_argument('-s', '--savehash', dest='savehash', default='')
     parser.add_argument('-l', '--loadhash', dest='loadhash',
                         default='')
+    parser.add_argument('-R', '--report-to-file', dest='report_file',
+                        type=argparse.FileType('w'))
     parser.add_argument('input_filenames', nargs='+')
 
     args = parser.parse_args()
@@ -41,6 +44,7 @@ def main():
     HT_SIZE=args.min_hashsize
     N_HT=args.n_hashes
     DESIRED_COVERAGE=args.cutoff
+    report_fp = args.report_file
 
     filenames = args.input_filenames
 
@@ -57,11 +61,17 @@ def main():
         output_name = os.path.basename(input_filename) + '.keep'
         outfp = open(output_name, 'w')
 
+	n = -1
         for n, record in enumerate(screed.open(input_filename)):
-            if n > 0 and n % 10000 == 0:
+            if n > 0 and n % 100000 == 0:
                 print '... kept', total - discarded, 'of', total, ', or', \
                     int(100. - discarded / float(total) * 100.), '%'
                 print '... in file', input_filename
+
+                if report_fp:
+                    print>>report_fp, total, total - discarded, \
+                        1. - (discarded / float(total))
+                    report_fp.flush()
 
             total += 1
 
@@ -77,14 +87,28 @@ def main():
             else:
                 discarded += 1
 
-        print 'DONE with', input_filename, '; kept', total - discarded, 'of',\
-            total, 'or', int(100. - discarded / float(total) * 100.), '%'
-        print 'output in', output_name
+	if -1 < n:
+	    print 'DONE with', input_filename, '; kept', total - discarded, 'of',\
+		total, 'or', int(100. - discarded / float(total) * 100.), '%'
+	    print 'output in', output_name
+	else: print 'SKIPPED empty file', input_filename
 
     if args.savehash:
         print 'Saving hashfile through', input_filename
         print '...saving to', args.savehash
         ht.save(args.savehash)
+
+    # Change 0.2 only if you really grok it.  HINT: You don't.
+    fp_rate = khmer.calc_expected_collisions(ht)
+    print 'fp rate estimated to be %1.3f' % fp_rate
+
+    if fp_rate > 0.20:
+        print >>sys.stderr, "**"
+        print >>sys.stderr, "** ERROR: the counting hash is too small for"
+        print >>sys.stderr, "** this data set.  Increase hashsize/num ht."
+        print >>sys.stderr, "**"
+        print >>sys.stderr, "** Do not use these results!!"
+        sys.exit(-1)
 
 if __name__ == '__main__':
     main()

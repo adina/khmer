@@ -1,4 +1,4 @@
-# /usr/bin/env python
+#! /usr/bin/env python
 """
 Build a counting Bloom filter from the given sequences, save in <htname>.
 
@@ -62,17 +62,23 @@ def main():
 
     print 'saving', base
     ht.save(base)
-    open(base + '.info', 'w').write('through end: %s' % filename)
+
+    info_fp = open(base + '.info', 'w')
+    info_fp.write('through end: %s\n' % filename)
 
     # Change 0.2 only if you really grok it.  HINT: You don't.
     fp_rate = khmer.calc_expected_collisions(ht)
     print 'fp rate estimated to be %1.3f' % fp_rate
+    print >>info_fp, 'fp rate estimated to be %1.3f' % fp_rate
+
     if fp_rate > 0.20:
         print >>sys.stderr, "**"
         print >>sys.stderr, "** ERROR: the counting hash is too small for"
         print >>sys.stderr, "** this data set.  Increase hashsize/num ht."
         print >>sys.stderr, "**"
         sys.exit(-1)
+
+    print 'DONE.'
 
 if __name__ == '__main__':
     main()

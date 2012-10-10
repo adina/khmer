@@ -639,6 +639,41 @@ void CountingHash::get_median_count(const std::string &s,
   median = counts[counts.size() / 2]; // rounds down
 }
 
+void CountingHash::get_kadian_count(const std::string &s,
+				    BoundedCounterType &kadian,
+				    unsigned int nk)
+{
+  BoundedCounterType count;
+  std::vector<BoundedCounterType> counts;
+  KMerIterator kmers(s.c_str(), _ksize);
+
+  while(!kmers.done()) {
+    HashIntoType kmer = kmers.next();
+    count = this->get_count(kmer);
+    counts.push_back(count);
+  }
+
+  assert(counts.size());
+  unsigned int kpos = nk*_ksize;
+  
+  if (counts.size() < kpos) {
+    kadian = 0;
+
+    return;
+  }
+
+  sort(counts.begin(), counts.end());
+  kadian = counts[kpos - 1];
+
+#if 0
+  std::cout << "k " << kpos << ": ";
+  for (unsigned int i = 0; i < counts.size(); i++) {
+    std::cout << i << "-" << counts[i] << " ";
+  }
+  std::cout << "\n";
+#endif // 0
+}
+
 
 void CountingHash::get_kmer_abund_mean(const std::string &filename,
 				       unsigned long long &total,

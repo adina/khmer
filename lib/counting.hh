@@ -199,6 +199,10 @@ namespace khmer {
 			  float &average,
 			  float &stddev);
 
+    void get_kadian_count(const std::string &s,
+			  BoundedCounterType &kadian,
+			  unsigned int nk = 1);
+
     HashIntoType * abundance_distribution(std::string filename,
 					  Hashbits * tracking,
 					  CallbackFn callback = NULL,
